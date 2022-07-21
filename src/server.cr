@@ -3,6 +3,14 @@ require "json"
 
 require "./scraper"
 
+def format_nilable_date(date : Time?)
+  if date.nil?
+    "-"
+  else
+    date.to_s("%Y-%m-%d")
+  end
+end
+
 SiteLog = ::Log.for("site")
 
 get "/" do

@@ -1,0 +1,2 @@
+struct Scraper::PendingScrape
+end

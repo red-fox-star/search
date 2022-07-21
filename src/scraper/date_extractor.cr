@@ -9,78 +9,42 @@ class Scraper::DateExtractor
   Log = ::Log.for(self)
 
   EXTRACTION_METHODS = [
+    # quick and easy methods
     CitationOnlineMatcher,
     MetaArticlePublishedMatcher,
     MetaItemPropDatePublishedMatcher,
     GithubDateExtractorMethod,
+
+    # more difficult methods
     LdJsonGraphSchemaMethod,
     RegexMatcher
   ]
 
-  property url : String
-  property date : Time
+  property date : Time?
+  private getter page : FetchedPage
 
-  def initialize(@url)
-    @date = Time.utc
-    fetch_and_parse
+  def initialize(@page)
+    @date = look_for_date
   end
 
-  def fetch_and_parse
-    start_time = Time.monotonic
-    response_body = fetch
-    response_time = Time.monotonic - start_time
-
-    # puts response_body
-    parsed_nodes = Lexbor::Parser.new response_body
-
+  def look_for_date : Time?
     extractor = EXTRACTION_METHODS.find do |extractor|
-      extractor.matches? parsed_nodes
+      extractor.matches? page.parsed_body
     end
 
-    raise "no matching extractor" unless extractor
-    Log.debug { "#{extractor.name} matched for #{url}" }
+    if extractor.nil?
+      Log.warn { "no extractor found for #{page.url}" }
+      return nil
+    end
 
-    candidate_dates = extractor.extract parsed_nodes
+    Log.debug { "#{extractor.name} matched for #{page.url}" }
 
-    # pp candidate_dates
+    candidate_dates = extractor.extract page.parsed_body
 
-    @date = candidate_dates.first
-  end
-
-  # todo prevent infinite redirects from ending up in a stackoverflow
-  def fetch
-    response = if url.starts_with? "https"
-      Log.info { "Using ssl fetch on #{url}" }
-      HTTP::Client.get url, headers: headers, tls: tls_config
+    if candidate_dates.empty?
+      Log.warn { "no dates found for #{page.url}" }
     else
-      Log.info { "Using no-ssl fetch on #{url}" }
-      HTTP::Client.get url, headers: headers
-    end
-
-    if response.status.redirection?
-      if (new_url = response.headers["Location"]?) && new_url != url
-        @url = new_url
-        Log.info { "Successful redirect to #{@url}" }
-        fetch
-      else
-        raise "Redirect but no new url"
-      end
-    else
-      response.body
-    end
-  end
-
-  def headers
-    # cheap/low-quality cloudflare protection requires a user agent which
-    # makes it seem like the scraper can parse javascript.
-    HTTP::Headers{
-      "User-Agent"=>"Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:102.0) Gecko/20100101 Firefox/102.0"
-    }
-  end
-
-  def tls_config
-    OpenSSL::SSL::Context::Client.new.tap do |config|
-      config.verify_mode = OpenSSL::SSL::VerifyMode::NONE
+      candidate_dates.first
     end
   end
 end

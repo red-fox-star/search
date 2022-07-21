@@ -11,8 +11,8 @@
     <% scraped_sites.each do |site| %>
       <tr>
         <td><%= site.url %></td>
-        <td><%= site.date.to_s("%Y-%m-%d") %></td>
-        <td><%= site.duration.total_milliseconds.format(decimal_places: 3) %>ms</td>
+        <td><%= format_nilable_date site.date %></td>
+        <td><%= site.scrape_duration.total_milliseconds.format(decimal_places: 3) %>ms</td>
       </tr>
     <% end %>
   </tbody>
