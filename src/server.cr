@@ -2,6 +2,9 @@ require "kemal"
 require "json"
 
 require "./scraper"
+require "./searcher"
+
+SiteLog = ::Log.for("site")
 
 def format_nilable_date(date : Time?)
   if date.nil?
@@ -11,7 +14,28 @@ def format_nilable_date(date : Time?)
   end
 end
 
-SiteLog = ::Log.for("site")
+def prefetch_sites(urls : Array(String))
+  start_time = Time.utc.to_unix_ms
+  scraped_sites = [] of Scraper::ScrapedSite
+
+  # Pull any relevant urls from cache, let the rest get scraped in background
+  Scraper::OptimisticBatch.fetch(urls).each do |site|
+    urls.delete site.url
+    scraped_sites << site
+  end
+
+  render "src/views/cache_fetch.html.ecr", "src/views/layout.html.ecr"
+end
+
+def search(urls : Array(String), query : String)
+  start_time = Time.utc.to_unix_ms
+
+  searcher = Searcher.new query, urls
+  results = searcher.ranked_results
+
+  render "src/views/results.html.ecr", "src/views/layout.html.ecr"
+end
+
 
 get "/" do
   render "src/views/search.html.ecr", "src/views/layout.html.ecr"
@@ -23,25 +47,23 @@ get "/search" do |env|
     .map(&.strip)
     .reject(&.blank?)
 
-  start_time = Time.utc.to_unix_ms
-  scraped_sites = [] of Scraper::ScrapedSite
-
-  # Pull any relevant urls from cache, let the rest get scraped in background
-  Scraper::OptimisticBatch.scrape(urls).each do |site|
-    urls.delete site.url
-    scraped_sites << site
+  case submit_button = env.params.query["submit"]
+  when "Search..."
+    search urls, env.params.query["q"]
+  when "Pre-Process"
+    prefetch_sites urls
+  else
+    raise "Unknown submit value: #{submit_button}"
   end
-
-  render "src/views/results.html.ecr", "src/views/layout.html.ecr"
 end
 
-ws "/results" do |socket|
+ws "/cache_fetch" do |socket|
   socket.on_message do |message|
     parsed = JSON.parse(message).as_h
 
     next unless parsed["type"]? == "urls"
     urls = parsed["urls"].as_a.map(&.as_s)
-    Log.info { "Search is waiting on: #{urls.size} responses" }
+    Log.info { "Cache fetch is waiting on: #{urls.size} responses" }
     index = 0
 
     loop do
@@ -53,7 +75,7 @@ ws "/results" do |socket|
 
       url = urls[index]
 
-      case site = Scraper::Cache.scrape url
+      case site = Scraper::Cache.fetch url
       when Scraper::PendingScrape
         index += 1
       when Scraper::ScrapedSite
@@ -69,8 +91,11 @@ ws "/results" do |socket|
       {"@type": "Finished", "time": Time.utc.to_unix_ms}.to_json
     )
   end
+end
 
-  socket.on_close do
+ws "/results" do |socket|
+  socket.on_message do |message|
+    parsed = JSON.parse(message).as_h
   end
 end
 

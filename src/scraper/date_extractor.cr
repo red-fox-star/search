@@ -1,11 +1,8 @@
-require "http/client"
-require "lexbor"
-
 require "./date_extractor_method"
 require "./date_extractors/meta_tag_extractor_method"
 require "./date_extractors/*"
 
-class Scraper::DateExtractor
+struct Scraper::DateExtractor
   Log = ::Log.for(self)
 
   EXTRACTION_METHODS = [

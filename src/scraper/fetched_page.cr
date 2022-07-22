@@ -19,6 +19,14 @@ struct Scraper::FetchedPage
     end
   end
 
+  def initialize(@url : String, @body : String)
+    @body = body
+    @parsed_body = Lexbor::Parser.new body
+
+    @http_fetch_time = Time::Span.zero
+    @html_parse_time = Time::Span.zero
+  end
+
   def headers
     # cheap/low-quality cloudflare protection requires a user agent which
     # makes it seem like the scraper can parse javascript.

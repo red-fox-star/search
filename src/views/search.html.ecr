@@ -1,7 +1,12 @@
 <h2>Parse dates:</h2>
 
 <form action="/search" method="get">
-  <textarea name="urls">
+  <input type="submit" name="submit" value="Pre-Process">
+  <br>
+  <input type="text" name="q" placeholder="Search Text">
+  <input type="submit" name="submit" value="Search...">
+  <br>
+  <textarea name="urls" style="width: 761px; height: 393px">
     https://www.caranddriver.com/reviews/a21786823/2019-audi-q8-first-drive-review/
     https://www.cnn.com/2020/03/12/opinions/oval-office-coronavirus-speech-trumps-worst-bergen/index.html
     https://www.nytimes.com/2020/03/11/us/politics/trump-coronavirus-speech.html
@@ -14,9 +19,4 @@
     https://github.com/mbadry1/DeepLearning.ai-Summary
     https://machinelearningmastery.com/gentle-introduction-text-summarization/
   </textarea>
-
-  <input type="submit" value="Pre-Process">
-  <br>
-  <input type="text" placeholder="Search Text">
-  <input type="submit" value="Search...">
 </form>

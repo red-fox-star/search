@@ -35,11 +35,15 @@ describe Scraper::DateExtractor do
 
   links.merge! working_links
 
-  links.each do |link, date|
+  links.each do |link, expected_date|
     it "extracts date from #{link}" do
-      extractor = Scraper::DateExtractor.new link
+      page = Scraper::FetchedPage.new link
+      extractor = Scraper::DateExtractor.new page
       extractor.date.should be_a Time
-      extractor.date.to_s("%Y/%m/%d").should eq date
+
+      if actual_date = extractor.date
+        actual_date.to_s("%Y/%m/%d").should eq expected_date
+      end
     end
   end
 end

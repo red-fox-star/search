@@ -10,5 +10,7 @@ crystal: 1.5.0
 dependencies:
   lexbor:
     git: git@github.com:kostya/lexbor.git
+  redis:
+    git: git@github.com:stefanwille/crystal-redis.git
   kemal:
     git: git@github.com:kemalcr/kemal.git

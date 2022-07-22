@@ -1,5 +1,5 @@
 module Scraper::OptimisticBatch
-  def self.scrape(urls : Array(String)) : Array(ScrapedSite)
+  def self.fetch(urls : Array(String)) : Array(ScrapedSite)
     cache = Cache.instance
 
     scraped_sites = [] of ScrapedSite
