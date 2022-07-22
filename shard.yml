@@ -1,0 +1,14 @@
+name: scraper
+version: 0.1.0
+
+targets:
+  scraper:
+    main: src/scraper.cr
+
+crystal: 1.5.0
+
+dependencies:
+  lexbor:
+    git: git@github.com:kostya/lexbor.git
+  kemal:
+    git: git@github.com:kemalcr/kemal.git

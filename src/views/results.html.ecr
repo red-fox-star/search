@@ -1,0 +1,100 @@
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>URL</th>
+      <th>Duration</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <% scraped_sites.each do |site| %>
+      <tr>
+        <td><%= site.url %></td>
+        <td><%= site.date.to_s("%Y-%m-%d") %></td>
+        <td><%= site.duration.total_milliseconds.format(decimal_places: 3) %>ms</td>
+      </tr>
+    <% end %>
+  </tbody>
+
+  <template id="result_row">
+    <tr>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+  </template>
+</table>
+
+<div id="scrape_summary" style="display: none">
+Took <span id="time_to_render"></span> to render results.
+</div>
+
+<script>
+  "use strict";
+
+  const urls = [
+    <% urls.each do |url| %>
+      "<%= url %>",
+    <% end %>
+  ]
+
+  const start_time = <%= start_time %>
+  window.start_time = start_time
+
+  const base_url = window.location.host
+  const connection = new WebSocket(`ws://${base_url}/results`)
+
+  connection.onopen = () => {
+    if (urls.length == 0) {
+      connection.close()
+      finished((new Date()).getTime())
+      return
+    }
+
+    connection.send(JSON.stringify({
+      type: "urls",
+      urls: urls
+    }))
+  }
+
+  connection.onmessage = (raw_message) => {
+    const data = JSON.parse(raw_message.data)
+    switch(data["@type"]) {
+      case "ScrapedSite":
+        addScrapedSite(data)
+        break
+      case "Finished":
+        finished(data["time"])
+        break
+      default:
+        debugger
+    }
+  }
+
+  // adapted from https://developer.mozilla.org/en-US/docs/Web/HTML/Element/template
+  function addScrapedSite(data) {
+    // Instantiate the table with the existing HTML tbody
+    // and the row with the template
+    const tbody = document.querySelector("tbody")
+    const template = document.querySelector('#result_row')
+
+    // Clone the new row and insert it into the table
+    let newResult = template.content.cloneNode(true)
+    var td = newResult.querySelectorAll("td")
+    td[0].textContent = data.url
+    td[1].textContent = data.date
+    td[2].textContent = data.duration
+
+    tbody.appendChild(newResult)
+  }
+
+  function finished(time_ms) {
+    const scrape_summary = document.querySelector("#scrape_summary")
+    const time_to_render = document.querySelector("#time_to_render")
+
+    time_to_render.innerHTML = `${time_ms - window.start_time}ms`
+    scrape_summary.style.display = ""
+  }
+</script>
+
